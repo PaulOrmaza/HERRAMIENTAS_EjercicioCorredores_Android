@@ -1,7 +1,6 @@
 package com.spoj.corredores;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -29,7 +28,7 @@ public class Carrera extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_carrera);
 
-        // Referenciar elementos de la vista
+        // Referenciar los elementos de la vista
         editNumCorredores = findViewById(R.id.edit_num_corredores);
         editDistancia = findViewById(R.id.edit_distancia);
         Button btnIniciarCarrera = findViewById(R.id.btn_iniciar_carrera);
@@ -41,7 +40,7 @@ public class Carrera extends AppCompatActivity {
     }
 
     private void iniciarCarrera() {
-        // Validar entrada de datos
+        // Validar la entrada de datos
         String numCorredoresStr = editNumCorredores.getText().toString();
         String distanciaStr = editDistancia.getText().toString();
 
@@ -65,25 +64,13 @@ public class Carrera extends AppCompatActivity {
     private void simularCarrera(int numCorredores, double distancia) {
         Thread thread = new Thread(() -> {
             try {
-                String urlString = "http://192.168.x.x:3003/carrera/" + numCorredores + "/" + distancia; // Asegúrate de que la IP sea correcta
+                // Configurar conexión al servidor
+                String urlString = "http://192.168.1.19:3003/carrera/" + numCorredores + "/" + distancia;
                 URL url = new URL(urlString);
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
-                connection.setConnectTimeout(5000);  // Tiempo de espera para la conexión
-                connection.setReadTimeout(5000);     // Tiempo de espera para la lectura
 
-                // Log de depuración
-                Log.d("Carrera", "Conectando a la URL: " + urlString);
-
-                // Verificar el código de respuesta
-                int responseCode = connection.getResponseCode();
-                Log.d("Carrera", "Código de respuesta: " + responseCode);
-
-                if (responseCode != HttpURLConnection.HTTP_OK) {
-                    throw new Exception("Código de respuesta no válido: " + responseCode);
-                }
-
-                // Leer la respuesta
+                // Leer la respuesta del servidor
                 BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
                 StringBuilder response = new StringBuilder();
                 String line;
@@ -93,14 +80,12 @@ public class Carrera extends AppCompatActivity {
                 }
                 reader.close();
 
-                // Mostrar resultados en el hilo principal
+                // Procesar resultados en el hilo principal
                 runOnUiThread(() -> mostrarResultados(response.toString()));
 
             } catch (Exception e) {
-                // Mostrar detalles de la excepción para depuración
-                Log.e("Carrera", "Error al conectar con el servidor", e);
                 runOnUiThread(() -> {
-                    Toast.makeText(this, "Error al conectar con el servidor: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Error al conectar con el servidor", Toast.LENGTH_SHORT).show();
                 });
             }
         });
@@ -108,26 +93,19 @@ public class Carrera extends AppCompatActivity {
         thread.start();
     }
 
-
     private void mostrarResultados(String response) {
         try {
             JSONObject json = new JSONObject(response);
 
             // Extraer información
-            JSONObject ganador = json.getJSONObject("ganador");
             JSONArray resultados = json.getJSONArray("resultados");
 
-            // Mostrar el ganador
+            // Mostrar el mensaje de resultados
             txtResultadosLabel.setVisibility(View.VISIBLE);
             resultadosContainer.setVisibility(View.VISIBLE);
             resultadosContainer.removeAllViews();
 
-            TextView ganadorView = new TextView(this);
-            ganadorView.setText("Ganador: " + ganador.getString("nombre") + " - Tiempo: " + ganador.getString("tiempo") + " segundos");
-            ganadorView.setTextSize(16);
-            resultadosContainer.addView(ganadorView);
-
-            // Mostrar la clasificación completa
+            // Mostrar los resultados
             for (int i = 0; i < resultados.length(); i++) {
                 JSONObject corredor = resultados.getJSONObject(i);
 
