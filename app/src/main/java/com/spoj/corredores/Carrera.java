@@ -1,6 +1,7 @@
 package com.spoj.corredores;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -64,13 +65,25 @@ public class Carrera extends AppCompatActivity {
     private void simularCarrera(int numCorredores, double distancia) {
         Thread thread = new Thread(() -> {
             try {
-                // Configurar conexión al servidor
-                String urlString = "http://192.168.137.79:3003/carrera/" + numCorredores + "/" + distancia;
+                String urlString = "http://192.168.x.x:3003/carrera/" + numCorredores + "/" + distancia; // Asegúrate de que la IP sea correcta
                 URL url = new URL(urlString);
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
+                connection.setConnectTimeout(5000);  // Tiempo de espera para la conexión
+                connection.setReadTimeout(5000);     // Tiempo de espera para la lectura
 
-                // Leer la respuesta del servidor
+                // Log de depuración
+                Log.d("Carrera", "Conectando a la URL: " + urlString);
+
+                // Verificar el código de respuesta
+                int responseCode = connection.getResponseCode();
+                Log.d("Carrera", "Código de respuesta: " + responseCode);
+
+                if (responseCode != HttpURLConnection.HTTP_OK) {
+                    throw new Exception("Código de respuesta no válido: " + responseCode);
+                }
+
+                // Leer la respuesta
                 BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
                 StringBuilder response = new StringBuilder();
                 String line;
@@ -80,18 +93,21 @@ public class Carrera extends AppCompatActivity {
                 }
                 reader.close();
 
-                // Procesar resultados en el hilo principal
+                // Mostrar resultados en el hilo principal
                 runOnUiThread(() -> mostrarResultados(response.toString()));
 
             } catch (Exception e) {
+                // Mostrar detalles de la excepción para depuración
+                Log.e("Carrera", "Error al conectar con el servidor", e);
                 runOnUiThread(() -> {
-                    Toast.makeText(this, "Error al conectar con el servidor", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Error al conectar con el servidor: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
             }
         });
 
         thread.start();
     }
+
 
     private void mostrarResultados(String response) {
         try {
